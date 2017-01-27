@@ -4,27 +4,28 @@ from tqdm import tqdm
 
 def ExtractAndSave():
 
-    save(extractFromDb())
+    f,t = extractFromDb()
+    save(f,t)
     print "Extract and Save finished OK."
 
 def extractFromDb():
     print "Extracting Features from Database..."
     features= []
+    targets = []
     dbimgs = glob.glob(config.IMGDB)
     todo = np.array_split(dbimgs,4)
     resultQ = Queue()
+    targetQ = Queue()
     sift = cv2.xfeatures2d.SIFT_create()
     jobs=[]
-    #kps = create_keypoints(1111,1111,30,10)
+    #kps_low = create_keypoints(1111,1111,30,5)
     kps_low = create_keypoints(1111,1111,300,5)
     kps_mid = create_keypoints(1111,1111,120,10)
     kps_high = create_keypoints(1111,1111,70,20)
-    # kps_low = create_keypoints(1111,1111,150,10)
-    # kps_mid = create_keypoints(1111,1111,50,20)
-    # kps_high = create_keypoints(1111,1111,20,30)
     kps_final = kps_low + kps_mid + kps_high
+    #kps_final = kps_low
     for w in xrange(4):
-        p = Process(target=extractWorker, args=(todo[w],resultQ,sift, w, kps_final))
+        p = Process(target=extractWorker, args=(todo[w],resultQ,targetQ,sift, w, kps_final))
         p.start()
         jobs.append(p)
 
@@ -32,12 +33,14 @@ def extractFromDb():
         running = any(j.is_alive() for j in jobs)
         while not resultQ.empty():
             features.append(resultQ.get())
+        while not targetQ.empty():
+            targets.append(targetQ.get())
         if not running:
             break
 
     print "\n"*5
     print "Extraction Finished"
-    return features
+    return features, targets
 
 def multiExtract(imgs):
     sift = cv2.xfeatures2d.SIFT_create()
@@ -46,7 +49,7 @@ def multiExtract(imgs):
         temp_features.append(extract(img, sift))
     return temp_features
 
-def extractWorker(todo,done,sift, pnumber, kps):
+def extractWorker(todo,done,targetQ,sift, pnumber, kps):
     for idx, img in enumerate(tqdm(todo,position=pnumber)):
         target = getTarget(img)
         img = cv2.imread(img)
@@ -54,8 +57,9 @@ def extractWorker(todo,done,sift, pnumber, kps):
 
         kp,des = sift.compute(gray,kps)
         features = np.ravel(des)
-        res = np.insert(features,0,target)
-        done.put(res)
+        #res = np.insert(features,0,target)
+        done.put(features)
+        targetQ.put(target);
 
 
 
@@ -67,25 +71,22 @@ def extract(img, sift):
     return np.ravel(des)
 
 
-def save(features):
+def save(features, targets):
 
     print "Saving Data..."
-    min_length= 999999
-    max_length = 0
-    with open(config.DATAFILE, 'w') as f:
-        for idx, row in enumerate(tqdm(features)):
-            line = ""
-            if len(row)> max_length:
-                max_length = len(row)
-            if len(row)< min_length:
-                min_length = len(row)
-            for i, feature in enumerate(row):
-                if i == 0:
-                    line += str(int(feature))
-                else:
-                    line += " " + str(i) + ":" + str(int(feature))
-            line += "\n"
-            f.write(line)
+    np.save(config.FILE_DATA, features)
+    print "Saving Targets..."
+    np.save(config.FILE_TARGET, targets)
+    # with open(config.DATAFILE, 'w') as f:
+    #     for idx, row in enumerate(tqdm(features)):
+    #         line = ""
+    #         for i, feature in enumerate(row):
+    #             if i == 0:
+    #                 line += str(int(feature))
+    #             else:
+    #                 line += " " + str(i) + ":" + str(int(feature))
+    #         line += "\n"
+    #         f.write(line)
 
 
 def getTarget(path):

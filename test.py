@@ -1,11 +1,12 @@
 import config
 from sklearn import svm
 from sklearn.model_selection import cross_val_score
-from sklearn.datasets import load_svmlight_file
+import numpy as np
 
 def runAll():
     print "Loading Data..."
-    x,y = load_svmlight_file(config.DATAFILE, zero_based=True)
+    x = np.load(config.FILE_DATA)
+    y = np.load(config.FILE_TARGET)
     print "Testing..."
     clf = svm.SVC(C=1,decision_function_shape="ovr", kernel="linear", gamma="auto")
 

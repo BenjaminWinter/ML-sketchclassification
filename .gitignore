@@ -1,3 +1,4 @@
 db/
 persistence/
 *.pyc
+.idea

@@ -1,4 +1,5 @@
-DATAFILE = "./persistence/data.txt"
+FILE_TARGET = "./persistence/data.npy"
+FILE_DATA = "./persistence/targets.npy"
 IMGDB = "./db/**/*"
 CLASSIFIER = "./persistence/classifier.pkl"
 TARGET_MAP = {"apple":0,"bus":1,"calculator":2,
