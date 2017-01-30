@@ -1,7 +1,7 @@
 import os
 
-FILE_TARGET = "./persistence/data.npy"
-FILE_DATA = "./persistence/targets.npy"
+FILE_DATA = "./persistence/data.npy"
+FILE_TARGET = "./persistence/targets.npy"
 IMGDB = "./db/**/*"
 CLASSIFIER = "./persistence/classifier.pkl"
 
