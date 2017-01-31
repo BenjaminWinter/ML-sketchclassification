@@ -1,4 +1,5 @@
 import config
+import multiprocessing
 from sklearn import svm
 from sklearn.model_selection import cross_val_score
 import numpy as np
@@ -12,7 +13,7 @@ def runAll():
 
     # precision = cross_val_score(clf,x,y,scoring="precision_weighted",cv=10,n_jobs=4, verbose=1)
     # recall = cross_val_score(clf,x,y,scoring="recall_weighted",cv=10,n_jobs=4, verbose=1)
-    f1 = cross_val_score(clf,x,y,scoring="f1_weighted",cv=10,n_jobs=4, verbose=1)
+    f1 = cross_val_score(clf,x,y,scoring="f1_weighted",cv=10,n_jobs=multiprocessing.cpu_count(), verbose=1)
     # print "Mean precision: ", precision.mean()
     # print "Mean recall: ", recall.mean()
     print "F1: ",f1
