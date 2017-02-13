@@ -1,58 +1,53 @@
 from __future__ import print_function
 
 from sklearn import datasets
-from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import classification_report
 from sklearn.svm import SVC
-from sklearn.datasets import load_svmlight_file
+from matplotlib.colors import Normalize
 import config
+import matplotlib.pyplot as plt
+import numpy as np
 
 
-print("Loading Data...")
 
-x,y = load_svmlight_file(config.DATAFILE)
+class MidpointNormalize(Normalize):
 
-# Split the dataset in two equal parts
-X_train, X_test, y_train, y_test = train_test_split(
-    x, y, test_size=0.5, random_state=0)
+    def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
+        self.midpoint = midpoint
+        Normalize.__init__(self, vmin, vmax, clip)
 
-# Set the parameters by cross-validation
-tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4],
-                     'C': [1, 10, 100, 1000, 10000]},
-                    {'kernel': ['linear'], 'C': [1, 10, 100, 1000, 10000]}]
+    def __call__(self, value, clip=None):
+        x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
+        return np.ma.masked_array(np.interp(value, x, y))
+        
+def runAll():
 
-scores = ['precision', 'recall', 'f1']
+    print("Loading Data...")
+    x = np.load(config.FILE_DATA)
+    y = np.load(config.FILE_TARGET)
+    
+    print("Testing...")
+    C_range = np.logspace(-2, 10, 5)
+    gamma_range = np.logspace(-9, 3, 5)
+    param_grid = dict(gamma=gamma_range, C=C_range)
+    grid = GridSearchCV(SVC(decision_function_shape="ovr", kernel="linear"), param_grid=param_grid, cv=2, n_jobs=8, verbose=100)
+    grid.fit(x, y)
 
-for score in scores:
-    print("# Tuning hyper-parameters for %s" % score)
-    print()
+    print("The best parameters are %s with a score of %0.2f"
+        % (grid.best_params_, grid.best_score_))
+        
+    scores = grid.cv_results_['mean_test_score'].reshape(len(C_range),
+                                                     len(gamma_range))
 
-    clf = GridSearchCV(SVC(C=1), tuned_parameters, cv=5,
-                       scoring='%s_macro' % score, n_jobs=4)
-    clf.fit(X_train, y_train)
-
-    print("Best parameters set found on development set:")
-    print()
-    print(clf.best_params_)
-    print()
-    print("Grid scores on development set:")
-    print()
-    means = clf.cv_results_['mean_test_score']
-    stds = clf.cv_results_['std_test_score']
-    for mean, std, params in zip(means, stds, clf.cv_results_['params']):
-        print("%0.3f (+/-%0.03f) for %r"
-              % (mean, std * 2, params))
-    print()
-
-    print("Detailed classification report:")
-    print()
-    print("The model is trained on the full development set.")
-    print("The scores are computed on the full evaluation set.")
-    print()
-    y_true, y_pred = y_test, clf.predict(X_test)
-    print(classification_report(y_true, y_pred))
-    print()
-
-# Note the problem is too easy: the hyperparameter plateau is too flat and the
-# output model is the same for precision and recall with ties in quality.
+    plt.figure(figsize=(8, 6))
+    plt.subplots_adjust(left=.2, right=0.95, bottom=0.15, top=0.95)
+    plt.imshow(scores, interpolation='nearest', cmap=plt.cm.hot,
+            norm=MidpointNormalize(vmin=0.7, midpoint=0.9, vmax=1.0))
+    plt.xlabel('gamma')
+    plt.ylabel('C')
+    plt.colorbar()
+    plt.xticks(np.arange(len(gamma_range)), gamma_range, rotation=45)
+    plt.yticks(np.arange(len(C_range)), C_range)
+    plt.title('Validation accuracy')
+    plt.show()

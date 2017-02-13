@@ -1,5 +1,6 @@
-import config, cv2, glob, sys, numpy as np
+import config, cv2, glob, sys, os,time,  numpy as np
 from multiprocessing import Process, Queue
+import multiprocessing
 from tqdm import tqdm
 
 def ExtractAndSave():
@@ -13,7 +14,7 @@ def extractFromDb():
     features= []
     targets = []
     dbimgs = glob.glob(config.IMGDB)
-    todo = np.array_split(dbimgs,4)
+    todo = np.array_split(dbimgs,multiprocessing.cpu_count())
     resultQ = Queue()
     targetQ = Queue()
     sift = cv2.xfeatures2d.SIFT_create()
@@ -24,8 +25,8 @@ def extractFromDb():
     kps_high = create_keypoints(1111,1111,70,20)
     kps_final = kps_low + kps_mid + kps_high
     #kps_final = kps_low
-    for w in xrange(4):
-        p = Process(target=extractWorker, args=(todo[w],resultQ,targetQ,sift, w, kps_final))
+    for w in xrange(multiprocessing.cpu_count()):
+        p = Process(target=extractWorker, args=(todo[w],resultQ,targetQ,w))
         p.start()
         jobs.append(p)
 
@@ -37,6 +38,7 @@ def extractFromDb():
             targets.append(targetQ.get())
         if not running:
             break
+        time.sleep(0.02)
 
     print "\n"*5
     print "Extraction Finished"
@@ -55,7 +57,12 @@ def multiExtract(imgs):
     return np.array(temp_features)
 
 
-def extractWorker(todo,done,targetQ,sift, pnumber, kps):
+def extractWorker(todo,done,targetQ, pnumber):
+    sift = cv2.xfeatures2d.SIFT_create()
+    kps_low = create_keypoints(1111,1111,300,5)
+    kps_mid = create_keypoints(1111,1111,120,10)
+    kps_high = create_keypoints(1111,1111,70,20)
+    kps = kps_low + kps_mid + kps_high
     for idx, img in enumerate(tqdm(todo,position=pnumber)):
         target = getTarget(img)
         img = cv2.imread(img)
@@ -96,8 +103,8 @@ def save(features, targets):
 
 
 def getTarget(path):
-    parts = path.split("/")
-    return config.TARGET_MAP[parts[len(parts)-2]]
+    target = os.path.split(os.path.split(path)[0])[1]
+    return config.TARGET_MAP[target]
 
 def create_keypoints(w, h, size, density):
     keypoints = []
