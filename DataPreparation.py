@@ -76,7 +76,13 @@ def extractWorker(todo,done,targetQ, pnumber):
 
 
 
-def extract(img, sift, kps):
+def extract(img):
+    sift = cv2.xfeatures2d.SIFT_create()
+    kps_low = create_keypoints(1111,1111,300,5)
+    kps_mid = create_keypoints(1111,1111,120,10)
+    kps_high = create_keypoints(1111,1111,70,20)
+    kps = kps_low + kps_mid + kps_high
+
     img = cv2.imread(img)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
