@@ -3,3 +3,4 @@ db_disabled/
 persistence/
 *.pyc
 .idea
+test/

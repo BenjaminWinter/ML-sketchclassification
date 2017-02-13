@@ -16,10 +16,11 @@ def getPredictions():
         extracted = np.array(DataPreparation.extract(img)).reshape((1, -1))
         print "Predicting..."
         predictions = clf.predict_proba(extracted)
-        print "---------------"
-        print predictions[0]
-        print "---------------"
-        print sorted(zip(predictions[0], config.TARGET_MAP.keys()))
-        exit()
-        readable = config.TARGET_MAP_INVERSE[predictions]
-        print "Predictions: ", readable
+        tuples = sorted(zip(predictions[0], sorted(config.TARGET_MAP.keys())),reverse=True);
+        best = tuples[:5]
+        print ""
+        print "Top 5 Predictions:"
+        print ""
+        for i, result in enumerate(best):
+            print "%d. %s | Probability: %.1f " % (i+1,result[1],result[0]*100)
+        print ""
