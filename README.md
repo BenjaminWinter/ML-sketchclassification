@@ -4,3 +4,5 @@
 
 -   10 Categories : 0.94
 -   20 Categories : 0.87
+-   50 Categories : 0.66
+-   100 Categories: 0.60

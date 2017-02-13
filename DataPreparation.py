@@ -1,4 +1,4 @@
-import config, cv2, glob, sys, os,  numpy as np
+import config, cv2, glob, sys, os,time,  numpy as np
 from multiprocessing import Process, Queue
 import multiprocessing
 from tqdm import tqdm
@@ -38,6 +38,7 @@ def extractFromDb():
             targets.append(targetQ.get())
         if not running:
             break
+        time.sleep(0.02)
 
     print "\n"*5
     print "Extraction Finished"
