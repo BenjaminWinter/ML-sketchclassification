@@ -54,7 +54,7 @@ def multiExtract(imgs):
     kps_final = kps_low + kps_mid + kps_high
     for idx, img in enumerate(imgs):
         temp_features.append(extract(img, sift, kps_final))
-    return np.array(temp_features)
+    return temp_features
 
 
 def extractWorker(todo,done,targetQ, pnumber):
@@ -90,16 +90,6 @@ def save(features, targets):
     np.save(config.FILE_DATA, features)
     print "Saving Targets..."
     np.save(config.FILE_TARGET, targets)
-    # with open(config.DATAFILE, 'w') as f:
-    #     for idx, row in enumerate(tqdm(features)):
-    #         line = ""
-    #         for i, feature in enumerate(row):
-    #             if i == 0:
-    #                 line += str(int(feature))
-    #             else:
-    #                 line += " " + str(i) + ":" + str(int(feature))
-    #         line += "\n"
-    #         f.write(line)
 
 
 def getTarget(path):

@@ -8,14 +8,14 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--prepare", help="extract features from training set and save", action="store_true")
     parser.add_argument("-t", "--test", help="Do Crossvalidation", action="store_true")
     parser.add_argument("-g", "--gridsearch", help="do a gridsearch for parameters", action="store_true")
-    parser.add_argument("-r", "--run", help="run through entire workflow", action="store", nargs="+")
+    parser.add_argument("-r", "--run", help="run through entire workflow", action="store_true")
     
     args = parser.parse_args()
 
     if args.learn:
         buildClassifier.learn()
     elif args.predict:
-        predict.getPredictions(args.predict)
+        predict.getPredictions()
     elif args.prepare:
         DataPreparation.ExtractAndSave()
     elif args.test:
@@ -25,4 +25,4 @@ if __name__ == "__main__":
     elif args.run:
         buildClassifier.learn()
         test.runAll()
-        predict.getPredictions(args.predict)
+        predict.getPredictions()
