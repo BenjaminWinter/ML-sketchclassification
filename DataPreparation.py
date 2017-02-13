@@ -42,12 +42,18 @@ def extractFromDb():
     print "Extraction Finished"
     return features, targets
 
+
 def multiExtract(imgs):
     sift = cv2.xfeatures2d.SIFT_create()
     temp_features = []
+    kps_low = create_keypoints(1111,1111,300,5)
+    kps_mid = create_keypoints(1111,1111,120,10)
+    kps_high = create_keypoints(1111,1111,70,20)
+    kps_final = kps_low + kps_mid + kps_high
     for idx, img in enumerate(imgs):
-        temp_features.append(extract(img, sift))
-    return temp_features
+        temp_features.append(extract(img, sift, kps_final))
+    return np.array(temp_features)
+
 
 def extractWorker(todo,done,targetQ,sift, pnumber, kps):
     for idx, img in enumerate(tqdm(todo,position=pnumber)):
@@ -63,11 +69,11 @@ def extractWorker(todo,done,targetQ,sift, pnumber, kps):
 
 
 
-def extract(img, sift):
+def extract(img, sift, kps):
     img = cv2.imread(img)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    kp, des = sift.detectAndCompute(gray, None)
+    kp, des = sift.compute(gray, kps)
     return np.ravel(des)
 
 
