@@ -1,0 +1,296 @@
+<!doctype html>
+<html class="no-js" lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISY-Project: Sketchclassification with Python</title>
+    <link rel="stylesheet" href="css/foundation.css">
+    <link rel="stylesheet" href="css/app.css">
+		<link rel="stylesheet" href="css/atom-one-dark.css">
+		<link href="https://fonts.googleapis.com/css?family=Open+Sans|Roboto+Slab" rel="stylesheet">
+		<script src="js/highlight.pack.js"></script>
+
+  </head>
+  <body>
+    <div class="row">
+      <div class="large-12 columns">
+        <h1>Sketchclassification in Python</h1>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="large-12 columns">
+					<div class="callout">
+						<h3>Einleitung</h3>
+						<p class="text-justify">
+							In diesem Projekt geht es um die Klassifikation von Skizzen mithilfe von Python und speziell
+							der <a href="http://scikit-learn.org/stable/">Scikit-learn</a> library. Die Datengrundlage sind die Skizzen in .png Form, die im Rahmen des Papers
+							<a href="http://cybertron.cg.tu-berlin.de/eitz/projects/classifysketch/">"How Do Humans Sketch Objects"</a> durch Crowd-Sourcing erhoben wurden. <br>
+							Entstanden ist eine Anwendung, die Features extrahieren und auf Diesen eine SVM lernen und Cross-Validation durchführen kann.
+							Mithilfe dieser SVM kann die Anwendung dann neue Bilder klassifizieren. <br>
+							Außerdem ist ein Modul zur grid search enthalten, um Parameter der SVM zu optimieren.
+							Zum Schluss wurden dann Tests mit verschiedenen Anzahlen an Kategorien durchgeführt um Messbarkeit herzustellen.
+						</p>
+						<div class="text-image">
+							<img src="img/ISY_UML.png" alt="UML Like Diagram">
+						</div>
+
+						<p class="text-justify">
+							Das obige Bild zeigt einen UML-artigen Überblick über meine Anwendung. Die Rechtecke stellen einzelne
+							Python module dar, und die rundlichen Flächen sind Daten, die auf der Festplatte persistiert werden.
+							Diese Modularisierung wurde gewählt um die einzelnen, teilweise sehr rechenaufwändigen Schritte einzeln und
+							entkoppelt voneinander ausführen zu können
+						</p>
+						<h3>Ergebnisse</h3>
+						<p class="text-justify">
+							Die folgende Tabelle zeigt mehrere Testdurchläufe mit der fertigen Anwendung.
+							Der F1 Score wurde dabei mithilfe von 10-Fold Crossvalidation berechnet. Interessant ist hier,dass
+							die Genauigkeit von 50 auf 100 Kategorien sehr viel langsamer gesunken ist, als in den Tests davor. <br>
+							Die vollen 250 Kategorien konnten leider nicht getestet werden, da die Berechnung mit meinem Rechner(CPU: i7-4770k | 20gb ram) zu lange gedauert hätte.
+						</p>
+						<table class="hover">
+							<thead>
+								<tr>
+									<th>Kategorien</th>
+									<th>F1-Score</th>
+									<th>Berechnungszeit in h (Feature Extraction + Cross Validation)</th>
+									<th>RAM in gb / Core</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>10</td>
+									<td>0.94</td>
+									<td>0.4+0.3</td>
+									<td>0.7</td>
+								</tr>
+								<tr>
+									<td>20</td>
+									<td>0.87</td>
+									<td>0.8+0.7</td>
+									<td>1.2</td>
+								</tr>
+								<tr>
+									<td>50</td>
+									<td>0.67</td>
+									<td>1.5+2</td>
+									<td>3.5</td>
+								</tr>
+								<tr>
+									<td>100</td>
+									<td>0.6</td>
+									<td>3+12</td>
+									<td>7</td>
+								</tr>
+							</tbody>
+						</table>
+
+						<h3>Screenshots</h3>
+						<figure>
+							<img src="img/prepare.png" alt="prepare">
+							<figcaption>Prepare Modul extrahiert parallelisiert Features aus den Bildern</figcaption>
+						</figure>
+						<figure>
+							<img src="img/predict.png" alt="prepare">
+							<figcaption>Predict Modul zeigt Top 5 Predictions mit ihren Wahrscheinlichkeiten.</figcaption>
+						</figure>
+
+						<h3>Module</h3>
+						Im Folgenden werde ich auf die einzelnen Module eingehen, code snippets zeigen und
+						diese erläutern.
+						<h4>Main</h4>
+						<pre><code class="python">
+if __name__ == "__main__":
+  parser = argparse.ArgumentParser(description='Classifying sketches')
+  parser.add_argument("-l", "--learn", help="train the svm", action="store_true")
+
+
+  args = parser.parse_args()
+
+  if args.learn:
+    buildClassifier.learn()
+						</code></pre>
+						<p class="text-justify">
+							Das Main-modul ist der einheitliche Einstiegspunkt für meine Anwendung. Über das argparse Package
+							werden hier Commandline Argumente abgefragt und dann in einer If-Kette ausgewertet. Je nach Argument wird dann
+							ein anderes Modul gestartet.
+						</p>
+						<h4>DataPreparation</h4>
+						<h5>Feature Extraction</h5>
+						<pre><code class="python">
+sift = cv2.xfeatures2d.SIFT_create()
+
+kps_low = create_keypoints(1111,1111,300,5)
+kps_mid = create_keypoints(1111,1111,120,10)
+kps_high = create_keypoints(1111,1111,70,20)
+kps_final = kps_low + kps_mid + kps_high
+
+for idx, img in enumerate(tqdm(todo,position=pnumber)):
+	target = getTarget(img)
+
+	img = cv2.imread(img)
+	gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+	kp,des = sift.compute(gray,kps)
+	features = np.ravel(des)
+						</code></pre>
+						<p class="text-justify">
+							Das DataPreparation Modul übernimmt die Feature Extraction. die create_keypoints Methode erstellt hier
+							3 Keypoint Grids, die progressiv dichter werden und dafür kleinere Keypoints beinhalten.
+							Meine ersten Ansätze waren hier detect_and_compute() zu nutzen beziehungsweise ein einzelnes Grid zu verwenden,
+							aber mit dieser Konfiguration hatte ich die besten Ergebnisse. Problematisch ist dabei jedoch, dass hier (5²+10²+20²)*128 Features pro Datensatz
+							entstehen. Das führt unter Anderem zu großen Performanceproblemen bei vielen Datensätzen. Außerdem muss aufgepasst werden, dass so viele Features nicht
+							zu overfitting führen. Nachdem die keypoints erstellt wurden werden alle zu extrahierenden Bilder in einer For-Schleife durchgegangen.
+							Zuerst wird über getTarget() die Klasse des Datensatzes bestimmt. Diese ist für das Training des Classifiers notwendig.
+							getTarget() entnimmt die Klasse dabei dem Ordner, in dem das jeweilige Bild liegt, und mappt diesen Namen auf einen Int Wert.
+							Die Zeilen die darauf folgen lesen dann das Bild ein, konvertieren es zu Graustufen und berechnen die Deskriptoren für die Keypoints.
+							Zum Schluss wird mit .ravel() das resultierende 2D Array in 1D Form gebracht, so wie <a href="http://scikit-learn.org/stable/">Scikit-learn</a> den Trainingsdatensatz erwartet.
+						</p>
+						<h5>Multiprocessing</h5>
+						<pre><code class="python">
+dbimgs = glob.glob(config.IMGDB)
+todo = np.array_split(dbimgs,multiprocessing.cpu_count())
+resultQ = Queue()
+targetQ = Queue()
+
+jobs=[]
+for w in xrange(multiprocessing.cpu_count()):
+  p = Process(target=extractWorker, args=(todo[w],resultQ,targetQ,w))
+  p.start()
+  jobs.append(p)
+
+for p in jobs:
+	p.join()
+						</code></pre>
+						<p class="text-justify">
+							Um die Featureextraction zu beschleunigen habe ich den im letzten Abschnitt beschriebenen Prozess
+							noch parallelisiert. Dabei war es wichtig nicht das Threading Packet von Python zu benutzen, da dies dank dem Global Interpreter Lock
+							keine Performanceverbesserungen bringt, sondern stattdessen Multiprocessing zu nutzen. Im obigen Code Abschnitt sieht man das Grundgerüst
+							dazu. Glob liefert die Liste aller Bilder, die dann mit Numpy in Chunks geteilt wird, je nachdem wie viele CPUs zu Verfügung stehen.
+							Queues wie die, die danach erstellt werden, sind der Standardweg um Daten zwischen Prozessen bei Multiprocessing
+							auszutauschen. Sie sind Processsafe, das bedeutet das mehrere Prozesse gleichzeitig auf ihnen schreiben und von ihnen lesen können und
+							ansonsten sind sie ein normaler First in First out Datentyp. Danach werden die einzelnen Prozesse über den Process() Konstruktor
+							erstellt. Dieser erhält über target= die von ihm auszuführende Funktion und über args= die Argumente der Funktion. Zu beachten dabei ist,
+							dass alle Argumente serialisierbar sein müssen, da sie sonst hier nicht übergeben werden dürfen.
+							Über .start() wird der Prozess dann gestartet und über .join() wartet der Hauptprozess darauf, dass die Childprozesse fertig sind, bevor er weitermacht.
+							<br>
+							Lässt man dies jetzt so stehen stößt man noch auf ein ziemlich fieses Problem. Die Childprozesse werden starten und auch alle CPUs richtig zu 100% auslasten,
+							aber nach ein paar Sekunden passiert nichts mehr. Die Prozesse rechnen nicht weiter, beenden sich nicht und Fehlermeldungen gibt es auch nicht.
+							Dies liegt an einer Beschränkung im Multiprocessing Paket. Da die einzelnen Prozesse wirklich "echte" Prozesse im Sinne des Betriebssystem sind, können diese auch
+							nur über das Betriebssystem miteinander kommunizieren, also die Queues austauschen. Für die Kommunikation zwischen Prozessen bieten Betriebssysteme sogenannte Pipes,
+							die in der Regel etwa 64kb groß sind. Ist diese Pipe voll, müssen alle Prozesse warten bevor sie weiter in die Queues schreiben können.
+							Lösen kann man das mit dem folgenden Snippet im Hauptprozess for dem .join() Befehl.
+						</p>
+						<pre><code class="python">
+while True:
+	running = any(j.is_alive() for j in jobs)
+	while not resultQ.empty():
+			features.append(resultQ.get())
+	while not targetQ.empty():
+			targets.append(targetQ.get())
+	if not running:
+			break
+	time.sleep(0.02)
+						</code></pre>
+						<p class="text-justify">
+							In dieser While-Schleife werden alle 20ms beide Queues geleert, solange noch mindestens ein Prozess arbeitet.
+							Man muss also während des Schreibens in die Queue gleichzeitig anfangen diese auszulesen.
+						</p>
+						<h4>BuildClassify</h4>
+						<pre><code class="python">
+x = np.load(config.FILE_DATA)
+y = np.load(config.FILE_TARGET)
+
+clf = svm.SVC(decision_function_shape="ovr", kernel="linear",
+		gamma=0.000001, C=0.01, Probability=True)
+clf.fit(x,y)
+
+joblib.dump(clf,config.CLASSIFIER)
+						</code></pre>
+						<p class="text-justify">
+							Das Training des Classifiers ist sehr einfach. Hier werden zuerst in x und y die Features und Klassen von der
+							Festplatte geladen, dann eine SVM mittels des Konstruktors svm.SVC() erstellt und diese mittels .fit() auf den Features trainiert.
+							Später für die predictions ist der Parameter Probability=True sehr wichtig. Mit diesem dauert das Training zwar sehr viel länger,
+							aber der Classifier kann damit Wahrscheinlichkeiten für die verschiedenen Klassen voraussagen.
+							Joblib wird anschließend genutzt um den fertigen Classifier zu speichern.
+						</p>
+						<h4>Test</h4>
+						<pre><code class="python">
+x = np.load(config.FILE_DATA)
+y = np.load(config.FILE_TARGET)
+
+clf = svm.SVC(decision_function_shape="ovr", kernel="linear",
+	gamma="auto", n_jobs=8, C=0.01)
+
+f1 = cross_val_score(clf,x,y,scoring="f1_weighted",cv=10,
+			n_jobs=multiprocessing.cpu_count(), verbose=100)
+						</code></pre>
+						<p class="text-justify">
+							Das Testmodul nimmt Crossvalidation vor und berechnet einen F1 Score zur Messbarkeit des Classifiers
+							<a href="http://scikit-learn.org/stable/">Scikit-learn</a> bietet dafür die Methode cross_val_score() an, die einen untrainierten classifier und Daten zur Validierung erhält. Außerdem
+							gibt man über scoring= an, welche Art von Score berechnet werden soll und cv=10 bedeutet, dass 10 Folds vorgenommen werden.
+						</p>
+						<h4>Predict</h4>
+						<pre><code class="python">
+clf = joblib.load(config.CLASSIFIER)
+
+while True:
+  img = raw_input("Path to Image: ")
+
+  extracted = np.array(DataPreparation.extract(img)).reshape((1, -1))
+  predictions = clf.predict_proba(extracted)
+  tuples = sorted(zip(predictions[0], sorted(config.TARGET_MAP.keys())),reverse=True);
+  best = tuples[:5]
+						</code></pre>
+						<p class="text-justify">
+							Über das Predict Modul kann man nun den trainierten Classifier laden und diesen neue Bilder klassifizieren lassen.
+							Das prepare Modul wird wieder für die Feature Extraction benutzt und .predict_proba() liefert anhand dieses Sampels die Wahrscheinlichkeiten
+							zu denen der Sampel zu jeder der dem Classifier bekannten Klassen gehört. Die letzten Zeilen des Snippets sind dann noch Sortierung und das Mapping der Klassen Ints
+							zurück auf die richtigen Labels.
+						</p>
+						<h4>Grid_search</h4>
+						<pre><code class="python">
+x = np.load(config.FILE_DATA)
+y = np.load(config.FILE_TARGET)
+
+C_range = np.logspace(-2, 10, 5)
+gamma_range = np.logspace(-9, 3, 5)
+param_grid = dict(gamma=gamma_range, C=C_range)
+grid = GridSearchCV(SVC(decision_function_shape="ovr", kernel="linear"),
+param_grid=param_grid, cv=2, n_jobs=8, verbose=100)
+grid.fit(x, y)
+
+scores = grid.cv_results_['mean_test_score'].reshape(len(C_range),len(gamma_range))
+						</code></pre>
+						<p class="">
+							Der Konstruktor der SVM besitzt jetzt noch 2 Parameter C und gamma, die ich bis jetzt übergangen habe.
+							Diese sind je nachdem wie die Daten aussehen enscheidend für den Erfolg des Algorithmus'.Leider gibt es keinen vernünftigen
+							Weg sich zu erschließen, welche Werte für einen gegebenen Datensatz besonders passend sind. Die einzige
+							Möglichkeit dies herauszufinden ist über Brute Force. Dazu benutzt man das Grid Search Verfahren bzw. bei <a href="http://scikit-learn.org/stable/">Scikit-learn</a>
+							die GridSearchCV() Methode. Diese erhält ein Grid aus Werten für die Parameter die ausprobiert werden sollen(hier erstellt durch np.logspace()),
+							und einen Classifier mit dem diese Parameter getestet werden sollen.
+							Die resultierenden Ergebnisse können wie nachfolgend zu sehen in einer Heatmap dargestellt werden.
+						</p>
+						<div class="text-image">
+							<img src="img/heatmap.png" alt="Heatmap of Gridsearch">
+						</div>
+						<h3>Schlusswort</h3>
+						<p class="text-justify">
+							Grundsätzlich wurden die Ziele des Projektes erreicht, es gibt jedoch noch viele mögliche Verbesserungen.
+							Der größte Punkt ist die Feature Extraction. Dafür gibt es noch viele andere, komplexere und effektivere Ansätze,
+							als einfach nur SIFT zu benutzen. Ein Beispiel ist die Bildung eines visuellen Vokabulars wie in<a href="http://cybertron.cg.tu-berlin.de/eitz/projects/classifysketch/">"How Do Humans Sketch Objects"</a> beschrieben.
+							Ein weiterer Punkt ist die Performance sowohl beim Training als auch bei der Feature Extraction. Mit effizienterer Feature extraction löst sich
+							dieses Problem eventuell von selbst, aber es könnten zusätzlich noch Techniken wie Bagging angewendet werden, um das Training für größere Datenmengen
+							zu optimieren.
+						</p>
+					</div>
+      </div>
+    </div>
+
+    <script src="js/vendor/jquery.js"></script>
+    <script src="js/vendor/what-input.js"></script>
+    <script src="js/vendor/foundation.js"></script>
+    <script src="js/app.js"></script>
+		<script>hljs.initHighlightingOnLoad();</script>
+  </body>
+</html>

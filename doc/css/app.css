@@ -1,0 +1,39 @@
+
+@font-face {
+  font-family: 'FiraCode';
+  src: url('https://cdn.rawgit.com/tonsky/FiraCode/master/distr/ttf/FiraCode-Regular.ttf'); /* IE9 Compat Modes */
+
+}
+pre code {
+	font-family: 'FiraCode', sans-serif;
+}
+pre {
+    margin-bottom: 35px;
+}
+
+.callout {
+    padding: 40px;
+}
+p.text-justify{
+	font-family: 'Roboto Slab', serif;
+}
+h1,h2,h3,h4,h5{
+	font-family: 'Open Sans', sans-serif;
+}
+figure {margin: 0 auto;margin-bottom: 20px;display: block;text-align: center;}
+
+figcaption {
+    font-size: 12px;
+}
+.hljs{
+	padding:1.2em !important;
+}
+.text-image {
+    width: 800px;
+    margin: 35px auto;
+}
+.text-image img {
+    text-align: center;
+    margin: 0 auto;
+    display: block;
+}
